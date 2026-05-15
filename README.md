@@ -1,2 +1,0 @@
-# hug-simulator
-ハグシミュレーター
