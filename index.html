@@ -185,7 +185,7 @@ let scene, camera, renderer, clock;
 let personA, personB, walkGroup;
 let currentView = '3rd';
 let hugMode = 'front'; 
-let rotation = { x: 0, y: 0 }, camDist = 3, isDragging = false, previousTouch = null;
+let rotation = { x: 0, y: 0 }, camDist = 3, isDragging = false, previousTouch = null, initialPinchDist = null;
 
 function init() {
     scene = new THREE.Scene();
@@ -479,14 +479,50 @@ function setupControls() {
     c.addEventListener('mousedown', () => isDragging = true);
     window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('mousemove', e => { if(isDragging) move(e.movementX, e.movementY); });
-    c.addEventListener('touchstart', e => { isDragging = true; previousTouch = e.touches[0]; }, { passive: false });
-    window.addEventListener('touchend', () => { isDragging = false; });
+
+    c.addEventListener('wheel', e => {
+        if (currentView === '3rd') {
+            camDist += e.deltaY * 0.002;
+            camDist = Math.max(0.5, Math.min(10, camDist));
+        }
+    }, { passive: true });
+
+    c.addEventListener('touchstart', e => { 
+        if (e.touches.length === 1) {
+            isDragging = true; 
+            previousTouch = e.touches[0]; 
+            initialPinchDist = null;
+        } else if (e.touches.length === 2 && currentView === '3rd') {
+            isDragging = false;
+            initialPinchDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => { 
+        isDragging = false; 
+        initialPinchDist = null;
+    });
+
     window.addEventListener('touchmove', e => {
-        if(!isDragging || !previousTouch) return;
-        if (e.cancelable) e.preventDefault();
-        const touch = e.touches[0];
-        move(touch.clientX - previousTouch.clientX, touch.clientY - previousTouch.clientY);
-        previousTouch = touch;
+        if (e.touches.length === 1 && isDragging && previousTouch) {
+            if (e.cancelable) e.preventDefault();
+            const touch = e.touches[0];
+            move(touch.clientX - previousTouch.clientX, touch.clientY - previousTouch.clientY);
+            previousTouch = touch;
+        } else if (e.touches.length === 2 && initialPinchDist !== null && currentView === '3rd') {
+            if (e.cancelable) e.preventDefault();
+            const currentDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            const diff = currentDist - initialPinchDist;
+            camDist -= diff * 0.005;
+            camDist = Math.max(0.5, Math.min(10, camDist));
+            initialPinchDist = currentDist;
+        }
     }, { passive: false });
 }
 
