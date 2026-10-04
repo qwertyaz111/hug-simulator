@@ -64,6 +64,15 @@
             cursor: pointer; 
             user-select: none; 
             gap: 10px; 
+            position: sticky;
+            top: -15px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 12px 15px;
+            margin: -15px -15px 10px -15px;
+            z-index: 10;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
         }
         #toggle-text { 
             font-size: 12px; 
@@ -288,6 +297,17 @@ function init() {
     window.switchView = switchView;
     window.swapAB = swapAB;
     window.shareToX = shareToX;
+
+    // 入力フォームからフォーカスが外れた際に画面・パネルのスクロールを復元
+    document.querySelectorAll('#ui-panel input, #ui-panel select').forEach(element => {
+        element.addEventListener('blur', () => {
+            const panel = document.getElementById('ui-panel');
+            if (panel) {
+                panel.scrollTop = 0;
+            }
+            window.scrollTo(0, 0);
+        });
+    });
 
     window.setHugMode = (m) => {
         hugMode = m; 
@@ -624,5 +644,4 @@ function shareToX() {
 init();
 </script>
 </body>
-</html>
 </html>
