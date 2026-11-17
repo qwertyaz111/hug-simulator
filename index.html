@@ -412,6 +412,9 @@ function createMannequin(color, heightCm, gender, name, role, otherConfig) {
         group.legs.push(anchor);
     });
 
+    // 肘関節を追加：棒を2分割するだけ。見た目・寸法は元のまま（脚は元のまま1本）
+    group.arms.forEach(arm => addJoint(arm));
+
     const canvas = document.createElement('canvas');
     canvas.width = 512; canvas.height = 128;
     const ctx = canvas.getContext('2d');
@@ -428,6 +431,23 @@ function createMannequin(color, heightCm, gender, name, role, otherConfig) {
     group.userData = { height: h, eyeY: eyeY, role: role, depth: torsoDepth, width: torsoW, armThick: armThickness, legH: legH, torsoH: torsoH, shoulderW: shoulderW, shoulderY: shoulderY };
     group.position.y = 0; group.position.z = 0;
     return group;
+}
+
+// 腕の棒を2分割して肘関節を作る
+function addJoint(anchor) {
+    const mesh = anchor.children[0];
+    const half = mesh.geometry.parameters.height / 2;
+    mesh.scale.y = 0.5;
+    mesh.position.y = -half / 2;
+    const joint = new THREE.Group();
+    joint.position.y = -half;
+    const lower = new THREE.Mesh(mesh.geometry, mesh.material);
+    lower.scale.y = 0.5;
+    lower.position.y = -half / 2;
+    joint.add(lower);
+    anchor.add(joint);
+    anchor.joint = joint;
+    anchor.half = half;
 }
 
 function updateScene() {
@@ -455,6 +475,7 @@ function updateScene() {
         personA.arms.forEach((arm, i) => {
             arm.rotation.z = (i === 0 ? -1 : 1) * angleZA;
             arm.rotation.x = - (Math.PI / 2) + angleXA;
+            arm.joint.rotation.z = -(i === 0 ? -1 : 1) * 0.4; // 肘を曲げて前腕を相手の背中側へ回す
         });
 
         // Bの腕
@@ -465,6 +486,7 @@ function updateScene() {
         personB.arms.forEach((arm, i) => {
             arm.rotation.z = (i === 0 ? -1 : 1) * angleZB;
             arm.rotation.x = - (Math.PI / 2) + angleXB;
+            arm.joint.rotation.z = -(i === 0 ? -1 : 1) * 0.35; // 肘を曲げて前腕を相手の背中側へ回す
         });
 
     } else {
@@ -473,10 +495,11 @@ function updateScene() {
         personA.position.z = 0.1; personA.rotation.y = 0;
         personB.position.z = -dist + 0.1; personB.rotation.y = 0; 
         
-        // Aの腕（真下へまっすぐ）
+        // Aの腕（真下へまっすぐ＋肘だけ少し前に曲げて自然に）
         personA.arms.forEach((arm, i) => { 
             arm.rotation.x = 0;
             arm.rotation.z = 0; 
+            arm.joint.rotation.x = -0.2;
         });
 
         // Bの腕（Aの胴体にピタッと触れる計算）
@@ -491,6 +514,7 @@ function updateScene() {
         personB.arms.forEach((arm, i) => {
             arm.rotation.z = (i === 0 ? -1 : 1) * hugAngleZ;
             arm.rotation.x = - (Math.PI / 2) + hugAngleX; 
+            arm.joint.rotation.z = -(i === 0 ? -1 : 1) * 0.1; // 肘を曲げて前腕をAのお腹の前へ回す（強く曲げると前腕がAの胴体の角に埋まるため、埋まらない範囲に抑える）
         });
     }
 
